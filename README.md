@@ -1,9 +1,9 @@
-logstash configuration for mitigate ssh Brute Force 
+####Logstash configuration for mitigate ssh Brute Force 
+this project using logstash to recognize sshd log and prevent ssh brute force via iptables and ipset 
 
 ####1. install and create ipset
 ```
-yum install -y ipset
-
+yum -y install ipset
 ipset create block hash:ip
 ```
 
@@ -13,13 +13,15 @@ ipset create block hash:ip
 -A INPUT -p tcp -m set --match-set block src -j DROP
 ```
 
-####3. Install and run Logstash
+####3. Prepare Logstash config 
 ```
-yum install logsash
+git clone git@github.com:pt1988/ssh-bf-blacklist.git
+mv ssh-bf-blacklist /etc/logstash 
 ```
-
-####4. Copy Logstash config and run Logstash
+####4. Install and run Logstash
 ```
-cp conf.d to /etc/logstash/
+sudo yum -y install epel-release
+sudo yum -y install logsash
 systemctl start logstash
 ```
+
