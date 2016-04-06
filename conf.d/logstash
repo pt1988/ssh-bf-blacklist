@@ -1,0 +1,43 @@
+input{
+	file{
+		path => ["/var/log/secure"]
+	}
+}
+
+output{
+	file {path => "/var/log/blacklist"}
+#	stdout { codec => json_lines }
+}
+
+filter{
+	grok {
+#		match => ["message","%{MONTH:month}(?: |  )%{MONTHDAY:day} %{TIME:time} %{WORD} %{WORD:prog}\[%{DATA}: %{DATA} logname=(?:%{WORD:logname}|) uid=(?:%{WORD:uid}|) euid=(?:%{WORD:euid}|) tty=(?:%{WORD:tty}|) ruser=(?:%{WORD:ruser}|) rhost=%{IP:remoteIP}  user=%{DATA:remoteUser}"]
+		match => ["message","%{MONTH:month}(?: |  )%{MONTHDAY:day} %{TIME:time} %{WORD} %{WORD:prog}\[%{DATA}: %{DATA}(?: logname=(?:%{WORD:logname}|)|)(?: uid=(?:%{WORD:uid}|)|)(?: euid=(?:%{WORD:euid}|)|)(?: tty=(?:%{WORD:tty}|)|)(?: ruser=(?:%{WORD:ruser}|)|) rhost=%{IP:remoteIP}(?: user=%{DATA:remoteUser}|)"]
+	}
+	if ![remoteIP] {
+		drop { }
+
+	}
+	throttle {
+		before_count => 0
+		after_count => 5
+		period => 30
+		key => "%{remoteIP}"
+		add_field => { "block" => "true"}
+	}
+	
+#	if [block] != "true"{
+#		drop {}
+#	}
+	if [remoteIP]{
+
+		ruby {
+			code => "
+				 remote_ip=event['remoteIP']
+	#			`echo #{remote_ip} >> /root/test` 
+				 `/usr/sbin/ipset add block #{remote_ip} timeout 86400 `
+				
+			"
+		}
+	}
+}
